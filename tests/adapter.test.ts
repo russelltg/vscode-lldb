@@ -760,6 +760,25 @@ function generateSuite(triple: string) {
                 await ds.terminate();
             })
 
+            test('rust linked_list', async function () {
+                let ds = await DebugTestSession.start();
+                let bpLine = findMarker(rustDebuggeeSource, '#BP_linked_list');
+                let localVars = await ds.launchStopAndGetVars({ name: 'rust linked_list', program: rustDebuggee }, rustDebuggeeSource, bpLine);
+
+                await ds.compareVariables(localVars, {
+                    empty: {$: "LinkedList (0)"},
+                    ll: {
+                        $: 'LinkedList (4)',
+                        '[0]': '"hello"',
+                        '[1]': '"goodbye"',
+                        '[2]': '"abcd"',
+                        '[3]': '"efgh"',
+                    }
+                });
+
+                await ds.terminate();
+            })
+
             test('rust misc', async function () {
                 let ds = await DebugTestSession.start();
                 let bpLine = findMarker(rustDebuggeeSource, '#BP_misc');

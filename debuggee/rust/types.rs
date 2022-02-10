@@ -4,7 +4,7 @@ mod tests;
 
 use std::borrow::Cow;
 use std::cell;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, LinkedList};
 use std::path;
 use std::rc;
 use std::sync;
@@ -240,6 +240,16 @@ fn hashes() {
     println!("---");
 }
 
+
+fn linked_list() {
+    let empty = LinkedList::<String>::new();
+    let ll = LinkedList::from(["hello".to_string(), "goodbye".to_string(), "abcd".to_string(), "efgh".to_string()]);
+
+    println!("---"); // #BP_linked_list
+    println!("---");
+    println!("---");
+}
+
 struct PyKeywords {
     finally: i32,
     import: i32,
@@ -272,5 +282,6 @@ fn main() {
     boxes();
     strings();
     hashes();
+    linked_list();
     misc();
 }

@@ -66,6 +66,8 @@ def initialize_category(debugger):
     attach_synthetic_to_type(StdHashMapSynthProvider, r'^std::collections::hash::map::HashMap<.+>$', True)
     attach_synthetic_to_type(StdHashSetSynthProvider, r'^std::collections::hash::set::HashSet<.+>$', True)
 
+    attach_synthetic_to_type(StdLinkedListSynthProvider, r'^alloc::collections::linked_list::LinkedList<.+>$', True)
+
     attach_synthetic_to_type(GenericEnumSynthProvider, r'^core::option::Option<.+>$', True)
     attach_synthetic_to_type(GenericEnumSynthProvider, r'^core::result::Result<.+>$', True)
     attach_synthetic_to_type(GenericEnumSynthProvider, r'^alloc::borrow::Cow<.+>$', True)
@@ -737,6 +739,41 @@ class StdHashSetSynthProvider(StdHashMapSynthProvider):
         bucket_idx = self.valid_indices[index]
         item = self.buckets.GetChildAtIndex(bucket_idx).GetChildAtIndex(0)
         return item.CreateChildAtOffset('[%d]' % index, 0, item.GetType())
+
+
+class StdLinkedListSynthProvider(RustSynthProvider):
+    def initialize(self):
+        self.length = gcm(self.valobj, 'len').GetValueAsUnsigned()
+        print(f'ty={gcm(gcm(self.valobj, "head").GetChildAtIndex(0), "pointer")}')
+
+    def has_children(self):
+        return True
+
+    def num_children(self):
+        return self.length
+
+    def get_child_at_index(self, index):
+        self.node_type = gcm(self.valobj, 'head').GetStaticValue().GetType().GetTemplateArgumentType(0).GetCanonicalType().GetTemplateArgumentType(0).GetCanonicalType().GetPointerType()
+        self.type = self.node_type.GetTemplateArgumentType(0).GetCanonicalType()
+        idx = 0
+        iter = gcm(gcm(self.valobj, 'head').GetChildAtIndex(0), 'pointer')
+        while idx != index:
+            print(f'iter={iter} node_type={self.node_type} dereftysz={iter.Dereference().GetType().GetByteSize()} deref={iter.Dereference()} next={iter.CreateChildAtOffset("next", 0, self.node_type)}')
+            # iter = gcm(gcm(iter.Dereference(), 'next').GetChildAtIndex(0), 'pointer')
+            iter = iter.CreateChildAtOffset("next", 0, self.node_type)
+            idx += 1
+
+        return gcm(iter.Dereference(), 'element').AddressOf().CreateChildAtOffset("[%d]" % index, 0, self.type)
+
+    def get_child_index(self, name):
+        try:
+            return int(name.lstrip('[').rstrip(']'))
+        except Exception as e:
+            log.error('%s', e)
+            raise
+
+    def get_summary(self):
+        return 'LinkedList (%d)' % self.length
 
 ##################################################################################################################
 
